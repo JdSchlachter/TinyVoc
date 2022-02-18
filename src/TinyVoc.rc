@@ -1,0 +1,177 @@
+//
+//  This file is part of TinyVoc project
+//  Copyright (C)2022 Jens Daniel Schlachter <osw.schlachter@mailbox.org>
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+
+#include "resource.h"
+#include "windows.h"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 0,0,9,0
+ PRODUCTVERSION 0,0,9,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x28L
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "J.D. Schlachter <osw.schlachter@mailbox.org>\000"
+            VALUE "FileDescription", "TinyVoc - Vocabulary Trainer\000"
+            VALUE "FileVersion", "v0.0.9\000"
+            VALUE "InternalName", "TinyVoc\000"
+            VALUE "LegalCopyright", "Copyright (C) 2022 J.D. Schlachter\000"
+            VALUE "OriginalFilename", "TinyVoc.exe\000"
+            VALUE "ProductVersion", "0, 0, 9, 0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_TRAINSET DIALOGEX 16, 16, 96, 109
+STYLE DS_SETFONT | DS_3DLOOK | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_CLIENTEDGE | WS_EX_STATICEDGE
+CAPTION "Training Scope"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "Training Selection",IDC_STATIC,7,4,80,64
+    CONTROL         "&ALL",IDC_ALL,"Button",BS_AUTORADIOBUTTON,13,15,28,10
+    CONTROL         "&Selection",IDC_SELECTION,"Button",BS_AUTORADIOBUTTON,13,26,52,10
+    CONTROL         "S&ubset:",IDC_SUBSET,"Button",BS_AUTORADIOBUTTON,13,38,41,10
+    EDITTEXT        IDC_SUBCOUNT,24,49,30,14,ES_AUTOHSCROLL
+    CONTROL         "Ignore &Case",IDC_IGNORECASE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,72,55,10
+    PUSHBUTTON      "Cancel",IDCANCEL,7,87,40,14
+    DEFPUSHBUTTON   "Go",IDOK,49,87,39,14
+END
+
+IDD_TRAINER DIALOGEX 0, 0, 163, 53
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_CLIENTEDGE | WS_EX_STATICEDGE
+CAPTION "TinyVoc Trainer"
+FONT 11, "Consolas", 0, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | WS_BORDER,3,42,123,6
+    EDITTEXT        IDC_ANSWER,3,18,157,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_QUESTION,3,4,157,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_CLIENTEDGE
+    DEFPUSHBUTTON   "Next",IDOK,129,40,31,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_TRAINSET, DIALOG
+    BEGIN
+        RIGHTMARGIN, 93
+        BOTTOMMARGIN, 106
+    END
+
+    IDD_TRAINER, DIALOG
+    BEGIN
+        LEFTMARGIN, 3
+        RIGHTMARGIN, 160
+        TOPMARGIN, 4
+        BOTTOMMARGIN, 49
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_TinyVoc               ICON                    "TinyVoc.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDC_TinyVoc MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                IDM_FILE_NEW
+        MENUITEM "&Open...\tCtrl+O",            IDM_FILE_OPEN
+        MENUITEM "&Save\tCtrl+S",               IDM_FILE_SAVE
+        MENUITEM "Save &as...\tCtrl+Alt+S",     IDM_FILE_SAVEAS
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit\tAlt+F4",               IDM_EXIT
+    END
+    POPUP "Train"
+    BEGIN
+        MENUITEM "&Train ...\tCtrl+Alt+T",      IDM_TRAIN
+        MENUITEM "Train with last &Settings\tCtrl+T", IDM_TRAINWITHLAST
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&Help ...\tF1",               IDM_HELP
+        MENUITEM "&About ...\tAlt+?",           IDM_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDC_TinyVoc ACCELERATORS
+BEGIN
+    "?",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
+    "^N",           IDM_FILE_NEW,           ASCII,  NOINVERT
+    "^O",           IDM_FILE_OPEN,          ASCII,  NOINVERT
+    "^S",           IDM_FILE_SAVE,          ASCII,  NOINVERT
+    "S",            IDM_FILE_SAVEAS,        VIRTKEY, CONTROL, ALT, NOINVERT
+    "T",            IDM_TRAIN,              VIRTKEY, CONTROL, ALT, NOINVERT
+    "^T",           IDM_TRAINWITHLAST,      VIRTKEY,  NOINVERT
+    VK_F1,          IDM_HELP,               VIRTKEY, NOINVERT    
+END
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDC_TinyVoc               "TinyVoc"
+END
