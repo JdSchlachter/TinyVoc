@@ -149,7 +149,7 @@ HWND CreateEditBox(HWND hOwner, WPARAM wParam, LPARAM lParam) {
     /** Overwrite its message-procedure and conserve the low-level one:               */
     lpfnEditBoxLowProc = (WNDPROC)SetWindowLongPtr(hWndEdit, GWLP_WNDPROC, (LONG_PTR)EditBoxProc);
     /** Set the font of the edit-box:                                                 */
-    hFont = CreateFont(18, 0, 0, 0,
+    hFont = CreateFont(Config.iFontSize, 0, 0, 0,
         FW_DONTCARE,                  // nWeight
         FALSE,                        // bItalic
         FALSE,                        // bUnderline

@@ -1,1 +1,6 @@
+TinyVoc.vcxproj.user
 /build
+/.vs
+/TinyVocPortable/TinyVoc.exe
+/TinyVocPortable/Data/settings/TinyVoc.ini
+/TinyVocPortable/Other/Help/TinyVoc.html
