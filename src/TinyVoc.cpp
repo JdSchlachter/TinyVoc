@@ -248,7 +248,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 LRESULT CALLBACK EditBoxProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     /** Variables                                                                     */
-	static CDiacriticTranslator Diacritic(hWndEdit);
+    static CDiacriticTranslator Diacritic(hWndEdit);
     WCHAR lpszLocalName[MAX_PATH];    
     /** Do the message-processing:                                                    */
     switch (message) {
@@ -256,8 +256,8 @@ LRESULT CALLBACK EditBoxProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
         //bTextChanged = false;
         break;
     case WM_CHAR:
-	case WM_DEADCHAR:
-			if (Diacritic.Translate(&message, &wParam, &lParam)) return 0;
+    case WM_DEADCHAR:
+        if (Diacritic.Translate(&message, &wParam, &lParam)) return 0;
         break;
     case WM_DROPFILES:
         /** Someone dragged a file on the edit-window, thus try to load it:           */

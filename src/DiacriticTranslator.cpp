@@ -207,9 +207,9 @@ void CDiacriticTranslator::TranslateChar(WCHAR Dia, WCHAR * Base) {
         if (*Base == L'u') *Base = L'ū';
         break;
     case L'\'':
-		if (*Base == L'A') *Base = L'Å';
-		if (*Base == L'a') *Base = L'å';
-		if (*Base == L'C') *Base = L'Ċ';
+        if (*Base == L'A') *Base = L'Å';
+        if (*Base == L'a') *Base = L'å';
+        if (*Base == L'C') *Base = L'Ċ';
         if (*Base == L'c') *Base = L'ċ';
         if (*Base == L'D') *Base = L'Ď';
         if (*Base == L'd') *Base = L'ď';
