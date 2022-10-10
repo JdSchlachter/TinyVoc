@@ -40,8 +40,8 @@ using namespace std;
 
 static HWND     hWndTrainer;
 static HWND     hWndMain;
-static WNDPROC         lpfnTrainEditLowProc;
-static WNDPROC         lpfnTrainOkLowProc;
+static WNDPROC  lpfnTrainEditLowProc;
+static WNDPROC  lpfnTrainOkLowProc;
 static CConfigHandler* Config;
 static WCHAR     sSaveLayout[KL_NAMELENGTH];
 static HFONT     hTrainerFont;
@@ -61,6 +61,7 @@ void Trainer_Init         (HINSTANCE hInstance, CConfigHandler* nConfig);
 bool Trainer_Prepare      (WCHAR* Vocabulary);
 void Trainer_Run          (HINSTANCE hInstance, HWND hWnd);
 wstring MarkedCompare     (wstring ActReply, wstring ReqReply);
+int  LongestCommonSubseq  (wstring s1, wstring s2, wstring &output);
 wstring Trim              (wstring Input);
 int  FindAnswer           (wstring Quest, wstring Reply);
 bool Trainer_ParseLine    (wstring Input);
@@ -68,17 +69,17 @@ bool Trainer_ParseLine    (wstring Input);
 /** Edit-Box Message-Handler: *********************************************************/
 
 LRESULT CALLBACK TrainEditProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	/** Variables                                                                     */
-	static CDiacriticTranslator Diacritic(hwnd);
-	/** Do the message-processing:                                                    */
-	switch (message) {
-	case WM_CHAR:
-	case WM_DEADCHAR:
-		if (wParam == VK_RETURN) {
+    /** Variables                                                                     */
+    static CDiacriticTranslator Diacritic(hwnd);
+    /** Do the message-processing:                                                    */
+    switch (message) {
+    case WM_CHAR:
+    case WM_DEADCHAR:
+        if (wParam == VK_RETURN) {
             Trainer_Update(hWndTrainer);
             return true;
         }
-		if (Diacritic.Translate(&message, &wParam, &lParam)) return 0;
+        if (Diacritic.Translate(&message, &wParam, &lParam)) return 0;
         break;
     }
     return CallWindowProc(lpfnTrainEditLowProc, hwnd, message, wParam, lParam);
@@ -150,7 +151,7 @@ INT_PTR CALLBACK TrainerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
         SendMessage(GetDlgItem(hDlg, IDC_ANSWER  ), WM_SETFONT, (WPARAM)hTrainerFont, MAKELPARAM(TRUE, 0));
         /** Overwrite its message-procedure and conserve the low-level one:               */
         lpfnTrainEditLowProc = (WNDPROC)SetWindowLongPtr(GetDlgItem(hDlg, IDC_ANSWER), GWLP_WNDPROC, (LONG_PTR)TrainEditProc);
-        lpfnTrainOkLowProc = (WNDPROC)SetWindowLongPtr(GetDlgItem(hDlg, IDOK), GWLP_WNDPROC, (LONG_PTR)lpfnTrainOkProc);
+        lpfnTrainOkLowProc   = (WNDPROC)SetWindowLongPtr(GetDlgItem(hDlg, IDOK), GWLP_WNDPROC, (LONG_PTR)lpfnTrainOkProc);
         /** Set the color of the progress-bar: */
         SendMessage(GetDlgItem(hDlg, IDC_PROGRESS), PBM_SETBARCOLOR, 0, RGB(60, 180, 70));
         /** Initialize the control-locators for later: */
@@ -162,15 +163,12 @@ INT_PTR CALLBACK TrainerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
         SetFocus(GetDlgItem(hDlg, IDC_ANSWER));
         return (INT_PTR)FALSE;
     case WM_GETMINMAXINFO:
-        /** Get the rectangles of window and client to calc the border-width:         */
-        //GetClientRect(hDlg, &rcClient);
-        //GetWindowRect(hDlg, &rcWind);
-        /** And set the minimum size based as reply via lpMMI in lParam:              */
+        /** Set the minimum size based as reply via lpMMI in lParam:                  */
         lpMMI->ptMinTrackSize.x = iMinWidth;
         lpMMI->ptMinTrackSize.y = iMinHeight;
         break;
     case WM_SIZE:
-        /** When the window is resized, do so with the controls:                  */
+        /** When the window is resized, do so with the controls:                      */
         LocQuest.LeftAlign(lParam);
         LocAns.LeftAlign(lParam);
         LocProg.LeftAlign(lParam);
@@ -201,7 +199,7 @@ void Trainer_CloseForm(HWND hDlg) {
     /** Save the current keyboard-layout in the config: */
     GetKeyboardLayoutName(Config->sLocale);
     /** Restore the old keyboard-layout from before: */
-    SendMessageW(HWND_BROADCAST, WM_INPUTLANGCHANGEREQUEST, 0,
+    SendMessageW(hDlg, WM_INPUTLANGCHANGEREQUEST, 0,
                  reinterpret_cast<LPARAM>(LoadKeyboardLayout(sSaveLayout, KLF_ACTIVATE)));
     /** Move back to the main window: */
     ShowWindow(hWndMain, SW_SHOW);
@@ -362,7 +360,7 @@ bool Trainer_Prepare(WCHAR* Vocabulary) {
 void Trainer_Run(HINSTANCE hInstance, HWND hWnd) {
     /** Save and update the current keyboard layout: */
     GetKeyboardLayoutName(sSaveLayout);
-    SendMessageW(HWND_BROADCAST, WM_INPUTLANGCHANGEREQUEST, 0,
+    SendMessageW(hWnd, WM_INPUTLANGCHANGEREQUEST, 0,
                  reinterpret_cast<LPARAM>(LoadKeyboardLayout(Config->sLocale, KLF_ACTIVATE)));
     /** Save the main window-handle and show the trainer: */
     hWndMain = hWnd;
@@ -374,47 +372,82 @@ void Trainer_Run(HINSTANCE hInstance, HWND hWnd) {
 /** Support-Functions: ****************************************************************/
 
 wstring MarkedCompare(wstring ActReply, wstring ReqReply) {
+    /** Variables: */
+    wstring SubSeq    = L"";
     wstring Outstring = L"";
-    int iStart, iStop, iDelta;
+    bool    CorrChar  = true;
+    int     i = 0, j  = 0;
+    /** Check the general situation: */
     if (ActReply.length() == 0) {
-        /* First special case, in which the user did not enter anything at all: */
+        /** First special case, in which the user did not enter anything at all: */
         Outstring = L"▒" + ReqReply;
     } else if ((ActReply.length() > ReqReply.length()) && (ActReply.substr(0, ReqReply.length())==ReqReply)) {
-        /* The second case, in which the user had too many letters at the end.
-         * This cannot be shown within the correct answer: */
-        iStop = (int) ReqReply.length() - 1;
-        Outstring = ReqReply.substr(0, iStop) + L"▒" + ReqReply.substr(iStop);
+        /** The second case, in which the user had too many letters at the end.
+         ** This cannot be shown within the correct answer: */
+        i = (int) ReqReply.length() - 1;
+        Outstring = ReqReply.substr(0, i) + L"▒" + ReqReply.substr(i);
     } else {
-        /* Some mistake, which can be shown in the correct answer.
-         * Thus, check correct letters from beginning and end: */
-        iStart = 0;
-        while (ActReply[iStart] == ReqReply[iStart]) {
-            iStart++;
+        /** Some mistake, which can be shown in the correct answer.
+         ** Thus, check for the longest common subsequence: */
+        LongestCommonSubseq(ActReply, ReqReply, SubSeq);
+        /** And walk through the expected characters to mark the incorrect ones: */
+        for (i=0; i<ReqReply.length(); i++) {
+            if (ReqReply[i] == SubSeq[j]) {
+                j++;
+                if (!CorrChar) {
+                    Outstring += L"▒";
+                    CorrChar   = true;
+                }
+            }else{
+                if (CorrChar) {
+                    Outstring += L"▒";
+                    CorrChar   = false;
+                }
+            }
+            Outstring += ReqReply[i];
         }
-        iStop = (int) ReqReply.length();
-        iDelta = (int) ActReply.length() - iStop;
-        while ((iStop > 0) && ((iStop + iDelta) > 0) && (ReqReply[iStop] == ActReply[iStop + iDelta])) {
-            iStop--;
-        }
-        /** Make some corrections: */
-        if (iStart > (iStop + 1)) {
-            /** Correct characters but too many times: */
-            iStop++;
-            iStart = iStop;
-        }else if (iStart > iStop) {
-            /** A block of wrong characters in between: */
-            iStart = iStop;
-        }
-        if ((iDelta > 0) && (iStart > 0)) {
-            /** Mark not only the first place before the fault, but also the one afterwards: */
-            iStop ++;
-        }
-        /** Build the output-string: */
-        Outstring = ReqReply.substr(0, iStart) + L"▒" + ReqReply.substr(iStart, iStop - iStart + 1);
-        if ((iStop < ((int) ReqReply.length() - 1))) Outstring += L"▒" + ReqReply.substr(iStop + 1);
     }
     /** And exit:*/
-    return Outstring;
+    return (Outstring);
+}
+
+#define MAX(a, b) (a > b ? a : b)
+
+int LongestCommonSubseq  (wstring s1, wstring s2, wstring &output) {
+    int i, j, k, t;
+    int s1Len = s1.size();
+    int s2Len = s2.size();
+    int *z  = (int* )calloc((s1Len + 1) * (s2Len + 1), sizeof(int));
+    int **c = (int**)calloc((s1Len + 1), sizeof(int*));
+
+    for (i = 0; i <= s1Len; ++i) {
+        c[i] = &z[i * (s2Len + 1)];
+    }
+
+    for (i = 1; i <= s1Len; ++i) {
+        for (j = 1; j <= s2Len; ++j) {
+            if (s1[i - 1] == s2[j - 1])
+                c[i][j] = c[i - 1][j - 1] + 1;
+            else
+                c[i][j] = MAX(c[i - 1][j], c[i][j - 1]);
+        }
+    }
+
+    t = c[s1Len][s2Len];
+    output = wstring(t, ' ');
+
+    for (i = s1Len, j = s2Len, k = t - 1; k >= 0;) {
+        if (s1[i - 1] == s2[j - 1])
+            output[k] = s1[i - 1], i--, j--, k--;
+        else if (c[i][j - 1] > c[i - 1][j])
+            --j;
+        else
+            --i;
+    }
+
+    free(c);
+    free(z);
+    return t;
 }
 
 wstring Trim(wstring Input) {
